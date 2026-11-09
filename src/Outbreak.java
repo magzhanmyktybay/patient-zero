@@ -16,9 +16,40 @@ public class Outbreak {
      * Do not forget to rebuild the answer (who exactly is tested), not only the cost: the picture needs it.
      * Main calls this twice: with all costs equal to 1 (the line "Tests needed") and with the real costs ("Cheapest testing").
      */
+
+    static long[] yes, no;
+
+    // fills yes[v] and no[v] for the subtree of v (children first, then v)
+    static void dfs(int v, int parent, int[][] nb, int[] cost) {
+        yes[v] = cost[v];
+        no[v] = 0;
+        for (int c : nb[v]) {
+            if (c == parent) continue;
+            dfs(c, v, nb, cost);
+            yes[v] += Math.min(yes[c], no[c]);
+            no[v] += yes[c];
+        }
+    }
+
+    // walks down from the root and decides who is tested
+    static void rebuild(int v, int parent, boolean vTested, int[][] nb, boolean[] tested) {
+        tested[v] = vTested;
+        for (int c : nb[v]) {
+            if (c == parent) continue;
+            boolean cTested;
+            if (vTested) cTested = yes[c] < no[c];
+            else cTested = true;
+            rebuild(c, v, cTested, nb, tested);
+        }
+    }
+
     public static boolean[] cheapestTests(int n, int[][] nb, int[] cost) {
-        // TODO Mission 5a
-        return new boolean[n];
+        yes = new long[n];
+        no = new long[n];
+        dfs(0, -1, nb, cost);
+        boolean[] tested = new boolean[n];
+        rebuild(0, -1, yes[0] <= no[0], nb, tested);
+        return tested;
     }
 
     /**
