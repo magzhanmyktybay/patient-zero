@@ -57,8 +57,23 @@ public class Outbreak {
      * A path goes up from one person and down to another; for every person you need the two longest ways down.
      * Example: a line 0-1-2-3 has chain 3; a star with centre 0 and leaves 1, 2, 3 has chain 2.
      */
+    static int best;
+
+    static int down(int v, int parent, int[][] nb) {
+        int top1 = 0, top2 = 0;
+        for (int c : nb[v]) {
+            if (c == parent) continue;
+            int d = down(c, v, nb) + 1;
+            if (d > top1) { top2 = top1; top1 = d; }
+            else if (d > top2) { top2 = d; }
+        }
+        best = Math.max(best, top1 + top2);
+        return top1;
+    }
+
     public static int longestChain(int n, int[][] nb) {
-        // TODO Mission 5b
-        return -1;
+        best = 0;
+        down(0, -1, nb);
+        return best;
     }
 }
