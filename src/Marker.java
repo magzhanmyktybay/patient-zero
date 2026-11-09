@@ -64,8 +64,73 @@ public class Marker {
      * can have the same hash.
      * Example: a = "ACGTAC", b = "TTACGT", k = 4: the words of a are ACGT, CGTA, GTAC; only ACGT is in b, so the answer is 1.
      */
+
+    // Polynomial hash: a window is read as a number in base BASE, modulo a big prime MOD
+    static final long BASE = 31;
+    static final long MOD = 1_000_000_007L;   // prime -> fewer collisions
+
+    /**
+     * Rolling hash: h[i] = hash of s[i..i+k-1] for every window of length k.
+     * The first window is computed in O(k), every next one in O(1).
+     */
+    static long[] windowHashes(String s, int k) {
+        int n = s.length();
+        if (n < k) return new long[0];          // no window fits
+        long[] h = new long[n - k + 1];
+
+        // pow = BASE^(k-1): the "weight" of the first letter of a window
+        long pow = 1;
+        for (int t = 0; t < k - 1; t++) pow = pow * BASE % MOD;
+
+        // Hash of the first window: add letters one by one (like 1 -> 12 -> 123)
+        long cur = 0;
+        for (int t = 0; t < k; t++) {
+            cur = (cur * BASE + s.charAt(t)) % MOD;
+        }
+        h[0] = cur;
+
+        // Slide the window one letter to the right in O(1)
+        for (int i = 1; i <= n - k; i++) {
+            cur = (cur - s.charAt(i - 1) * pow % MOD + MOD) % MOD;  // remove the old first letter (+MOD: never negative)
+            cur = cur * BASE % MOD;                                  // shift left
+            cur = (cur + s.charAt(i + k - 1)) % MOD;                 // add the new last letter
+            h[i] = cur;
+        }
+        return h;
+    }
+
+    /**
+     * Rabin-Karp: count positions i in a whose k-letter word also occurs in b.
+     */
     public static int sharedWords(String a, String b, int k) {
-        // TODO Mission 4
-        return -1;
+        long[] ha = windowHashes(a, k);
+        long[] hb = windowHashes(b, k);
+
+        // Remember every window of b: hash -> list of start positions with this hash
+        Map<Long, List<Integer>> map = new HashMap<>();
+        for (int j = 0; j < hb.length; j++) {
+            map.computeIfAbsent(hb[j], x -> new ArrayList<>()).add(j);
+        }
+
+        int count = 0;
+        for (int i = 0; i < ha.length; i++) {
+            List<Integer> list = map.get(ha[i]);
+            if (list == null) continue;          // hash not in b -> this word is surely not in b
+            for (int j : list) {
+                // Equal hashes do not prove equal words (collision) -> compare the letters
+                boolean same = true;
+                for (int t = 0; t < k; t++) {
+                    if (a.charAt(i + t) != b.charAt(j + t)) {
+                        same = false;
+                        break;
+                    }
+                }
+                if (same) {
+                    count++;
+                    break;
+                }    // count position i once, even if the word is in b many times
+            }
+        }
+        return count;
     }
 }
